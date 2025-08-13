@@ -1,1 +1,728 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VenzAImy — ChatAI Demo (Single File)</title>
+<style>
+  /* ===== Reset & base ===== */
+  :root{
+    --bg:#0f1724; --card:#0b1220; --muted:#9aa6bf; --accent:#7c3aed;
+    --glass: rgba(255,255,255,0.04);
+    --glass-2: rgba(255,255,255,0.02);
+    --radius:14px;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:linear-gradient(180deg,#07102a 0%, #071827 40%, #071122 100%);
+    color:#e6eef8; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    display:flex; align-items:stretch; justify-content:center; padding:28px;
+  }
+  .app{
+    width:100%; max-width:1100px; height:calc(100vh - 56px); border-radius:18px; overflow:hidden;
+    display:grid; grid-template-columns:1fr; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+    box-shadow: 0 10px 40px rgba(2,6,23,0.6);
+    position:relative;
+  }
 
+  /* ===== Header ===== */
+  header{
+    height:72px; display:flex; align-items:center; justify-content:space-between; padding:14px 20px;
+    border-bottom:1px solid rgba(255,255,255,0.03); backdrop-filter: blur(6px);
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.0));
+  }
+  .logo{display:flex; gap:12px; align-items:center}
+  .logo .mark{width:44px; height:44px; border-radius:10px; background:linear-gradient(135deg,var(--accent),#3b82f6);
+    display:flex; align-items:center; justify-content:center; font-weight:700; color:white;}
+  .brand{font-weight:700; font-size:18px}
+  .top-actions{display:flex; gap:10px; align-items:center}
+
+  /* ===== Main area (pages) ===== */
+  main{display:flex; flex-direction:column; height:calc(100% - 72px); overflow:hidden}
+  .pages{flex:1; display:grid; grid-template-columns:1fr; position:relative; overflow:hidden}
+  .page{
+    position:absolute; inset:0; padding:20px; overflow:auto; transition:transform .45s cubic-bezier(.2,.9,.25,1), opacity .38s;
+    transform-origin:top left;
+  }
+  .page.hidden{opacity:0; pointer-events:none; transform:translateY(20px) scale(.995)}
+
+  /* ===== Cards & inputs ===== */
+  .card{background:linear-gradient(180deg,var(--glass),var(--glass-2)); border-radius:var(--radius); padding:18px; box-shadow: 0 6px 20px rgba(2,6,23,0.5); border:1px solid rgba(255,255,255,0.03)}
+  .row{display:flex; gap:12px; align-items:center}
+  input[type=text], input[type=password], select, textarea{
+    background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--muted); padding:10px 12px; outline:none; border-radius:10px;
+    min-height:44px; width:100%;
+  }
+  button{
+    background:linear-gradient(90deg,var(--accent),#2563eb); color:white; border:0; padding:10px 14px; border-radius:10px; cursor:pointer;
+    font-weight:600;
+  }
+  .muted{color:var(--muted); font-size:13px}
+
+  /* ===== First page (API input) ===== */
+  .api-area{max-width:860px; margin:34px auto; display:grid; gap:14px}
+  .flex-split{display:flex; gap:14px}
+  .left{flex:1}
+  .right{width:320px}
+
+  /* ===== Chat area ===== */
+  .chat-wrap{display:flex; flex-direction:column; height:100%}
+  .messages{flex:1; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:12px}
+  .msg{max-width:78%; padding:10px 12px; border-radius:12px}
+  .msg.user{margin-left:auto; background:linear-gradient(180deg,#0b1530,#0b1b3a); color:#dbeafe}
+  .msg.bot{background:rgba(255,255,255,0.03); color:var(--muted)}
+  .chat-input{display:flex; gap:8px; padding:12px; border-top:1px solid rgba(255,255,255,0.02); background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+  .chat-input input{flex:1}
+
+  /* ===== Bottom navigation (TikTok style) ===== */
+  .bottom-nav{
+    height:78px; display:flex; gap:6px; align-items:center; justify-content:space-around; padding:8px 16px; border-top:1px solid rgba(255,255,255,0.03);
+    background:linear-gradient(180deg, rgba(0,0,0,0.03), rgba(255,255,255,0.01));
+  }
+  .nav-btn{display:flex; flex-direction:column; align-items:center; gap:6px; color:var(--muted); font-size:12px; cursor:pointer}
+  .nav-btn.active{color:white; transform:translateY(-4px)}
+  .big-action{width:62px; height:62px; border-radius:18px; background:linear-gradient(135deg,#10b981,#06b6d4); display:flex; align-items:center; justify-content:center; font-weight:700; color:#02111a; box-shadow: 0 10px 30px rgba(6,95,70,0.12)}
+
+  /* ===== Dashboard & cards ===== */
+  .grid{display:grid; gap:12px}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+  .stat{padding:16px; border-radius:12px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); text-align:center}
+
+  /* ===== Portfolio & products ===== */
+  .profile{display:flex; gap:14px; align-items:center}
+  .avatar{width:86px; height:86px; border-radius:16px; background:linear-gradient(135deg,#f97316,#f43f5e); display:flex; align-items:center; justify-content:center; font-weight:800}
+  .links{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap}
+  .chip{padding:8px 10px; border-radius:999px; background:rgba(255,255,255,0.03); font-weight:600; font-size:13px}
+
+  /* ===== Product cards ===== */
+  .product{display:flex; gap:12px; align-items:center; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,0.03)}
+  .product .meta{flex:1}
+
+  /* ===== Modal ===== */
+  .modal{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.5); z-index:60;
+  }
+  .modal .dialog{width:420px; max-width:92%; background:var(--card); padding:18px; border-radius:12px}
+
+  /* ===== Loading animation ===== */
+  .loader{height:6px; width:160px; background:rgba(255,255,255,0.03); overflow:hidden; border-radius:999px}
+  .loader > i{display:block; height:100%; width:40%; background:linear-gradient(90deg,var(--accent),#06b6d4); animation:move 1.6s linear infinite}
+  @keyframes move{0%{transform:translateX(-120%)}100%{transform:translateX(220%)}}
+
+  /* ===== Responsiveness ===== */
+  @media (max-width:720px){
+    body{padding:10px}
+    header{padding:12px}
+    .right{width:100%}
+    .flex-split{flex-direction:column}
+    .bottom-nav{height:84px}
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="mark">VA</div>
+      <div>
+        <div class="brand">VenzAImy</div>
+        <div class="muted" style="font-size:12px">Demo ChatAI — Grok (placeholder)</div>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <div id="userStatus" class="muted">Belum login</div>
+      <button id="btn-login">Login / Register</button>
+    </div>
+  </header>
+
+  <!-- Main pages -->
+  <main>
+    <div class="pages">
+      <!-- Page: API Input (landing) -->
+      <section id="page-home" class="page">
+        <div style="display:flex; justify-content:center; margin-top:18px">
+          <div class="card api-area">
+            <div style="display:flex; justify-content:space-between; align-items:center">
+              <div>
+                <h2 style="margin:0">Masukkan API Grok (Demo)</h2>
+                <div class="muted">Isikan API key Anda di sini. (Contoh: GROK-XXX) — disimpan lokal di browser.</div>
+              </div>
+              <div class="loader" title="Demo loader"><i></i></div>
+            </div>
+
+            <div class="flex-split">
+              <div class="left">
+                <label class="muted">API Key</label>
+                <input id="input-api" placeholder="Masukkan API key Grok Anda (demo)"/>
+                <div style="height:8px"></div>
+                <label class="muted">Nama Aplikasi (opsional)</label>
+                <input id="input-apiname" placeholder="Contoh: VenzAImy Demo"/>
+                <div style="height:8px"></div>
+                <div style="display:flex; gap:8px">
+                  <button id="btn-save-api">Save & Buka ChatAI</button>
+                  <button id="btn-sample" style="background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--muted)">Isi contoh</button>
+                </div>
+                <p class="muted" style="margin-top:8px">Catatan: file ini offline — Anda harus mengganti bagian API call dengan endpoint Grok yang valid untuk chat sebenarnya.</p>
+              </div>
+
+              <div class="right">
+                <div class="card">
+                  <h3 style="margin:6px 0">Fitur</h3>
+                  <ul class="muted" style="padding-left:18px; margin:6px 0 0 0">
+                    <li>ChatAI demo (client-side)</li>
+                    <li>Dashboard analitik (statistik dummy)</li>
+                    <li>Create API / Project (simulasi)</li>
+                    <li>Portfolio & Produk</li>
+                    <li>Registrasi / Login sederhana (localStorage)</li>
+                    <li>Pembayaran (simulasi modal)</li>
+                  </ul>
+                  <div style="height:12px"></div>
+                  <div style="display:flex; gap:8px; justify-content:space-between; align-items:center">
+                    <small class="muted">Status API</small>
+                    <div id="apiStatus" class="chip">Belum disimpan</div>
+                  </div>
+                </div>
+
+                <div style="height:12px"></div>
+
+                <div class="card">
+                  <h4 style="margin:6px 0">Panduan Cepat</h4>
+                  <ol class="muted" style="padding-left:18px; margin:6px 0 0 0">
+                    <li>Simpan API key, lalu buka ChatAI</li>
+                    <li>Gunakan Chat untuk bertanya (simulasi)</li>
+                    <li>Login untuk menyimpan proyek & pembelian</li>
+                    <li>Untuk produksi: hubungkan endpoint Grok & gateway pembayaran</li>
+                  </ol>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- Page: ChatAI -->
+      <section id="page-chat" class="page hidden" aria-hidden="true">
+        <div class="card chat-wrap" style="height:100%; display:flex; flex-direction:column">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px">
+            <div>
+              <h3 style="margin:0">ChatAI</h3>
+              <div class="muted">Chat demo — menggunakan API yang Anda simpan</div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center">
+              <button id="btn-open-dashboard" class="muted" style="background:transparent; border:1px solid rgba(255,255,255,0.03); color:var(--muted)">Dashboard</button>
+              <div id="apiBadge" class="chip muted">API: belum</div>
+            </div>
+          </div>
+
+          <div class="messages card" id="messages" style="margin-top:12px; flex:1">
+            <!-- messages inserted here -->
+            <div class="muted" style="font-size:13px">Mulai chat dengan menulis di bawah.</div>
+          </div>
+
+          <div class="chat-input">
+            <input id="chatInput" placeholder="Tanyakan sesuatu kepada AI..." />
+            <button id="sendBtn">Kirim</button>
+          </div>
+
+          <!-- bottom nav -->
+          <div class="bottom-nav">
+            <div class="nav-btn" data-page="chat" id="nav-chat">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Chat
+            </div>
+
+            <div class="nav-btn" data-page="create" id="nav-create">
+              <div class="big-action">+API</div>
+              <div style="font-size:11px; margin-top:6px">Create</div>
+            </div>
+
+            <div class="nav-btn" data-page="portfolio" id="nav-portfolio">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M3 7h18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              Portfolio
+            </div>
+
+            <div class="nav-btn" data-page="products" id="nav-products">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 3h18v18H3z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Produk
+            </div>
+
+            <div class="nav-btn" data-page="dashboard" id="nav-dashboard">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 13h8V3H3v10zM3 21h8v-6H3v6zM13 21h8V11h-8v10zM13 3v6h8V3h-8z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Stats
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Page: Create API / Project -->
+      <section id="page-create" class="page hidden" aria-hidden="true">
+        <div class="card" style="max-width:900px; margin:18px auto">
+          <h3>Create API / Project</h3>
+          <div class="muted">Buat API demo atau proyek untuk mengelola instansi AI Anda.</div>
+          <div style="height:12px"></div>
+          <label class="muted">Nama Project</label>
+          <input id="proj-name" placeholder="Contoh: ChatBot Support"/>
+          <div style="height:8px"></div>
+          <label class="muted">Deskripsi singkat</label>
+          <textarea id="proj-desc" rows="3" placeholder="Deskripsi..."></textarea>
+          <div style="height:10px"></div>
+          <div style="display:flex; gap:8px">
+            <button id="btn-create-proj">Buat Project</button>
+            <button id="btn-list-proj" style="background:transparent; border:1px solid rgba(255,255,255,0.03)">Lihat Project</button>
+          </div>
+
+          <div id="proj-list" style="margin-top:12px"></div>
+        </div>
+      </section>
+
+      <!-- Page: Portfolio -->
+      <section id="page-portfolio" class="page hidden" aria-hidden="true">
+        <div style="max-width:900px; margin:18px auto">
+          <div class="card profile">
+            <div class="avatar">RV</div>
+            <div>
+              <div style="display:flex; align-items:center; gap:8px">
+                <h3 style="margin:0">Rizal Venuss</h3>
+                <div class="chip muted">Developer • AI Enthusiast</div>
+              </div>
+              <div class="muted">Portofolio singkat saya — link ke GitHub, Instagram, TikTok & WhatsApp</div>
+              <div class="links">
+                <a class="chip" href="#" id="link-github">GitHub</a>
+                <a class="chip" href="#" id="link-instagram">Instagram</a>
+                <a class="chip" href="#" id="link-tiktok">TikTok</a>
+                <a class="chip" href="#" id="link-wa">WhatsApp</a>
+              </div>
+
+              <div style="height:12px"></div>
+
+              <div class="card">
+                <h4 style="margin:6px 0">Projek Saya</h4>
+                <div id="my-projects">
+                  <!-- project items -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Page: Products & Pricing -->
+      <section id="page-products" class="page hidden" aria-hidden="true">
+        <div style="max-width:980px; margin:18px auto">
+          <h3>Produk & Paket Premium</h3>
+          <div class="muted">Pilih paket untuk membuka fitur AI tanpa limit (simulasi pembelian)</div>
+          <div style="height:12px"></div>
+
+          <div class="grid cols-3">
+            <div class="product card">
+              <div style="width:10px"></div>
+              <div class="meta">
+                <div style="display:flex; justify-content:space-between; align-items:center">
+                  <div><b>Paket Standar</b><div class="muted" style="font-size:13px">Cocok untuk uji coba</div></div>
+                  <div><b>Rp25.000</b></div>
+                </div>
+                <div style="height:8px"></div>
+                <div class="muted">Kuota: 5.000 token / bulan (simulasi)</div>
+              </div>
+              <div><button class="buyBtn" data-plan="standar">Beli</button></div>
+            </div>
+
+            <div class="product card">
+              <div class="meta">
+                <div style="display:flex; justify-content:space-between; align-items:center">
+                  <div><b>Paket Medium</b><div class="muted" style="font-size:13px">Untuk pengguna aktif</div></div>
+                  <div><b>Rp75.000</b></div>
+                </div>
+                <div style="height:8px"></div>
+                <div class="muted">Kuota: 25.000 token / bulan (simulasi)</div>
+              </div>
+              <div><button class="buyBtn" data-plan="medium">Beli</button></div>
+            </div>
+
+            <div class="product card">
+              <div class="meta">
+                <div style="display:flex; justify-content:space-between; align-items:center">
+                  <div><b>Paket Pro</b><div class="muted" style="font-size:13px">Untuk developer / bisnis</div></div>
+                  <div><b>Rp250.000</b></div>
+                </div>
+                <div style="height:8px"></div>
+                <div class="muted">Kuota: unlimited (simulasi)</div>
+              </div>
+              <div><button class="buyBtn" data-plan="pro">Beli</button></div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="card">
+            <h4 style="margin:2px 0">Metode Pembayaran (Simulasi)</h4>
+            <div class="muted">Curries / e-wallet / e-banking — ini hanya demo. Hubungkan payment gateway nyata (Midtrans, Xendit, Stripe, dll.) untuk produksi.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Page: Dashboard -->
+      <section id="page-dashboard" class="page hidden" aria-hidden="true">
+        <div style="max-width:980px; margin:18px auto">
+          <h3>Dashboard Analitik</h3>
+          <div class="muted">Statistik dummy untuk menunjukkan tampilan analitik</div>
+          <div style="height:12px"></div>
+
+          <div class="grid cols-3">
+            <div class="stat card"><div class="muted">Penggunaan Bulan Ini</div><h2 id="stat-usage">12.345</h2></div>
+            <div class="stat card"><div class="muted">Percakapan</div><h2 id="stat-conv">234</h2></div>
+            <div class="stat card"><div class="muted">Pendapatan (simulasi)</div><h2 id="stat-rev">Rp1.250.000</h2></div>
+          </div>
+
+          <div style="height:12px"></div>
+          <div class="card">
+            <h4 style="margin:2px 0">Tren Harian</h4>
+            <div class="muted">(grafik sederhana — ini demo, grafik sesungguhnya bisa dibuat dengan Chart.js atau library lain)</div>
+            <div style="height:12px"></div>
+            <div style="display:flex; gap:12px">
+              <div style="flex:1; height:120px; border-radius:8px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); display:flex; align-items:center; justify-content:center" class="muted">
+                Grafik (placeholder)
+              </div>
+              <div style="width:220px">
+                <div class="muted">Ringkasan</div>
+                <ul class="muted" style="padding-left:18px">
+                  <li>Waktu respon rata-rata: 0.4s (simulasi)</li>
+                  <li>Tingkat kepuasan: 92% (simulasi)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Simple login/register modal -->
+  <div id="modal-auth" class="modal" style="display:none">
+    <div class="dialog card">
+      <h3 id="modalTitle">Login / Register</h3>
+      <div style="height:8px"></div>
+      <label class="muted">Email</label>
+      <input id="auth-email" type="text" placeholder="email@example.com" />
+      <div style="height:8px"></div>
+      <label class="muted">Password</label>
+      <input id="auth-pw" type="password" placeholder="password" />
+      <div style="height:12px; display:flex; gap:8px; justify-content:flex-end">
+        <button id="auth-register" style="background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--muted)">Register</button>
+        <button id="auth-login">Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment modal (simulasi) -->
+  <div id="modal-pay" class="modal" style="display:none">
+    <div class="dialog card">
+      <h3>Konfirmasi Pembayaran</h3>
+      <div id="payInfo" class="muted">Memproses...</div>
+      <div style="height:12px"></div>
+      <label class="muted">Metode Pembayaran</label>
+      <select id="payMethod">
+        <option value="ewallet">E-Wallet</option>
+        <option value="ebank">E-Banking</option>
+        <option value="curries">Curries</option>
+      </select>
+      <div style="height:12px; display:flex; gap:8px; justify-content:flex-end">
+        <button id="payCancel" style="background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--muted)">Batal</button>
+        <button id="payConfirm">Bayar Sekarang</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ===== Simple client-only app state & helpers ===== */
+const $ = id => document.getElementById(id);
+const pages = {
+  home: $('page-home'),
+  chat: $('page-chat'),
+  create: $('page-create'),
+  portfolio: $('page-portfolio'),
+  products: $('page-products'),
+  dashboard: $('page-dashboard')
+};
+const navButtons = document.querySelectorAll('.nav-btn');
+
+// --- navigation helper
+function showPage(name){
+  Object.keys(pages).forEach(k=>{
+    if(k===name){
+      pages[k].classList.remove('hidden');
+      pages[k].removeAttribute('aria-hidden');
+    } else {
+      pages[k].classList.add('hidden');
+      pages[k].setAttribute('aria-hidden','true');
+    }
+  });
+  document.querySelectorAll('.nav-btn').forEach(n=>n.classList.toggle('active', n.dataset.page===name));
+  // update badge states
+  if(name==='chat'){
+    renderApiBadge();
+    simulateScrollToBottom();
+  }
+}
+
+// --- local storage keys
+const LS = {
+  API_KEY: 'venzaimy_api_key',
+  API_NAME: 'venzaimy_api_name',
+  USER: 'venzaimy_user', // store user object {email, pwHash, name}
+  PROJECTS: 'venzaimy_projects',
+  PURCHASES: 'venzaimy_purchases'
+}
+
+// --- utility: toast (simple)
+function toast(msg){ alert(msg) }
+
+// ===== Landing / API save =====
+$('btn-sample').addEventListener('click', ()=>{
+  $('input-api').value = 'GROK-DEMO-EXAMPLE-xxxx';
+  $('input-apiname').value = 'VenzAImy Demo App';
+});
+
+$('btn-save-api').addEventListener('click', ()=>{
+  const key = $('input-api').value.trim();
+  const name = $('input-apiname').value.trim();
+  if(!key){ toast('Masukkan API key dulu.'); return; }
+  localStorage.setItem(LS.API_KEY, key);
+  if(name) localStorage.setItem(LS.API_NAME, name);
+  $('apiStatus').textContent = 'Tersimpan';
+  // go to chat
+  showPage('chat');
+  toast('API disimpan secara lokal. Ganti bagian fetch di kode dengan endpoint Grok untuk aktifkan chat nyata.');
+});
+
+// render badge
+function renderApiBadge(){
+  const key = localStorage.getItem(LS.API_KEY);
+  $('apiBadge').textContent = key ? 'API: tersimpan' : 'API: belum';
+  $('apiStatus').textContent = key ? 'Tersimpan' : 'Belum disimpan';
+  $('apiStatus').classList.toggle('muted', !key);
+  $('apiBadge').classList.toggle('muted', !key);
+}
+
+// ===== Chat: simulated conversation & placeholder for real API call =====
+const messagesEl = $('messages');
+function appendMessage(text, who='bot'){
+  const el = document.createElement('div');
+  el.className = 'msg ' + (who==='user' ? 'user' : 'bot');
+  el.textContent = text;
+  messagesEl.appendChild(el);
+  simulateScrollToBottom();
+}
+function simulateScrollToBottom(){
+  messagesEl.scrollTop = messagesEl.scrollHeight + 400;
+}
+
+// handle send
+$('sendBtn').addEventListener('click', handleSend);
+$('chatInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') handleSend() });
+
+function handleSend(){
+  const text = $('chatInput').value.trim();
+  if(!text) return;
+  appendMessage(text,'user');
+  $('chatInput').value='';
+  // show temporary loading bubble
+  const loading = document.createElement('div'); loading.className='msg bot'; loading.textContent='...';
+  messagesEl.appendChild(loading);
+  simulateScrollToBottom();
+
+  // --- Here: place where you would call Grok / your AI API.
+  // Example (commented): replace URL & method with provider
+  /*
+  fetch('https://api.grok.example/v1/chat', {
+    method:'POST',
+    headers:{ 'Authorization': 'Bearer ' + localStorage.getItem(LS.API_KEY), 'Content-Type':'application/json' },
+    body: JSON.stringify({model:'grok-demo', input: text})
+  })
+  .then(r=>r.json())
+  .then(res=>{
+     loading.remove();
+     appendMessage(res.output_text || 'Response dari API kosong');
+  }).catch(err=>{
+     loading.remove();
+     appendMessage('Terjadi error saat menghubungi API (lihat console).');
+     console.error(err);
+  });
+  */
+
+  // Since this is a demo single-file offline, we simulate AI reply:
+  setTimeout(()=>{
+    loading.remove();
+    appendMessage('Simulasi jawaban AI untuk: ' + text);
+  }, 900 + Math.random()*700);
+}
+
+// ===== Bottom nav clicks =====
+navButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=> {
+    const p = btn.dataset.page;
+    if(p) showPage(p);
+  });
+});
+
+// also header dashboard button
+$('btn-open-dashboard').addEventListener('click', ()=> showPage('dashboard'));
+
+// ===== Create project logic =====
+$('btn-create-proj').addEventListener('click', ()=>{
+  const name = $('proj-name').value.trim();
+  const desc = $('proj-desc').value.trim();
+  if(!name) return toast('Masukkan nama project');
+  const all = JSON.parse(localStorage.getItem(LS.PROJECTS) || '[]');
+  all.push({id:Date.now(), name, desc});
+  localStorage.setItem(LS.PROJECTS, JSON.stringify(all));
+  $('proj-name').value=''; $('proj-desc').value='';
+  toast('Project dibuat');
+  renderProjectList();
+});
+
+$('btn-list-proj').addEventListener('click', renderProjectList);
+
+function renderProjectList(){
+  const all = JSON.parse(localStorage.getItem(LS.PROJECTS) || '[]');
+  const cont = $('proj-list'); cont.innerHTML='';
+  if(!all.length){ cont.innerHTML = '<div class="muted">Belum ada project</div>'; return; }
+  all.slice().reverse().forEach(p=>{
+    const el = document.createElement('div');
+    el.className='card'; el.style.marginBottom='8px';
+    el.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center">
+      <div><b>${escapeHtml(p.name)}</b><div class="muted" style="font-size:13px">${escapeHtml(p.desc||'—')}</div></div>
+      <div style="display:flex; gap:8px"><button class="muted" style="background:transparent; border:1px solid rgba(255,255,255,0.03)" data-id="${p.id}" onclick="deleteProj(this)">Hapus</button></div>
+    </div>`;
+    cont.appendChild(el);
+  });
+}
+window.deleteProj = function(btn){
+  const id = +btn.dataset.id;
+  const all = JSON.parse(localStorage.getItem(LS.PROJECTS) || '[]').filter(x=>x.id!==id);
+  localStorage.setItem(LS.PROJECTS, JSON.stringify(all));
+  renderProjectList();
+  renderPortfolioProjects();
+}
+
+// ===== Portfolio rendering =====
+function renderPortfolioProjects(){
+  const cont = $('my-projects'); cont.innerHTML = '';
+  const all = JSON.parse(localStorage.getItem(LS.PROJECTS) || '[]');
+  if(!all.length){ cont.innerHTML = '<div class="muted">Belum ada projek yang ditampilkan.</div>'; return; }
+  all.slice().reverse().forEach(p=>{
+    const el = document.createElement('div'); el.className='product'; el.style.marginBottom='8px';
+    el.innerHTML = `<div style="width:10px"></div><div class="meta"><b>${escapeHtml(p.name)}</b><div class="muted" style="font-size:13px">${escapeHtml(p.desc)}</div></div>
+      <div><button onclick="openProject(${p.id})">Buka</button></div>`;
+    cont.appendChild(el);
+  });
+}
+window.openProject = function(id){ toast('Membuka project ID ' + id + ' (simulasi)') }
+
+// ===== Products / Purchase flow (simulasi) =====
+document.querySelectorAll('.buyBtn').forEach(b=>{
+  b.addEventListener('click', (e)=>{
+    const plan = b.dataset.plan;
+    openPaymentModal(plan);
+  });
+});
+
+function openPaymentModal(plan){
+  $('modal-pay').style.display='flex';
+  $('payInfo').textContent = `Anda akan membeli paket: ${plan.toUpperCase()}`;
+  $('payConfirm').dataset.plan = plan;
+}
+$('payCancel').addEventListener('click', ()=> $('modal-pay').style.display='none');
+
+$('payConfirm').addEventListener('click', ()=>{
+  const method = $('payMethod').value;
+  const plan = $('payConfirm').dataset.plan || 'standar';
+  // Simulate payment processing with small timeout
+  $('payInfo').textContent = 'Memproses pembayaran...';
+  setTimeout(()=>{
+    // store purchase
+    const purchases = JSON.parse(localStorage.getItem(LS.PURCHASES) || '[]');
+    purchases.push({id:Date.now(), plan, method, date:new Date().toISOString()});
+    localStorage.setItem(LS.PURCHASES, JSON.stringify(purchases));
+    $('modal-pay').style.display='none';
+    toast('Pembelian sukses (simulasi). Paket: ' + plan);
+    // update dashboard revenue stat (simple)
+    const revEl = $('stat-rev'); if(revEl){
+      const current = parseInt((revEl.textContent||'0').replace(/[^0-9]/g,'')) || 0;
+      const add = plan==='pro' ? 250000 : plan==='medium' ? 75000 : 25000;
+      revEl.textContent = 'Rp' + (current + add).toLocaleString('id-ID');
+    }
+  }, 1100 + Math.random()*1000);
+});
+
+// ===== Simple auth (register/login, client-only) =====
+$('btn-login').addEventListener('click', ()=> $('modal-auth').style.display='flex');
+$('auth-register').addEventListener('click', ()=>{
+  const email = $('auth-email').value.trim();
+  const pw = $('auth-pw').value;
+  if(!validateEmail(email)) return toast('Email tidak valid');
+  if(pw.length < 4) return toast('Password minimal 4 karakter (demo)');
+  // store user
+  const user = {email, pwHash: btoa(pw), name: email.split('@')[0]};
+  localStorage.setItem(LS.USER, JSON.stringify(user));
+  $('modal-auth').style.display='none';
+  updateUserUI();
+  toast('Registrasi berhasil (disimpan lokal)');
+});
+$('auth-login').addEventListener('click', ()=>{
+  const email = $('auth-email').value.trim();
+  const pw = $('auth-pw').value;
+  const stored = JSON.parse(localStorage.getItem(LS.USER) || 'null');
+  if(!stored || stored.email !== email || stored.pwHash !== btoa(pw)){ return toast('Login gagal (demo)'); }
+  $('modal-auth').style.display='none';
+  updateUserUI();
+  toast('Login berhasil');
+});
+function updateUserUI(){
+  const u = JSON.parse(localStorage.getItem(LS.USER) || 'null');
+  $('userStatus').textContent = u ? u.email : 'Belum login';
+}
+function validateEmail(e){ return /\S+@\S+\.\S+/.test(e) }
+
+// ===== Helpers & init =====
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]) }
+
+function init(){
+  renderApiBadge();
+  updateUserUI();
+  renderProjectList();
+  renderPortfolioProjects();
+  showPage('home');
+
+  // Put portfolio links demo
+  $('link-github').href = 'https://github.com/your-username';
+  $('link-instagram').href = 'https://instagram.com/your-username';
+  $('link-tiktok').href = 'https://tiktok.com/@your-username';
+  $('link-wa').href = 'https://wa.me/6281234567890';
+}
+init();
+
+/* ===== Notes for production integration (visible to developer in code) =====
+  - Untuk menghubungkan ke Grok API, ganti blok fetch yang dikomentari di handleSend()
+    dengan endpoint Grok dan model yang Anda gunakan. Pastikan API key dikirim via header Authorization: Bearer <API_KEY>.
+  - Jangan menyimpan API key sensitif di localStorage untuk aplikasi produksi. Gunakan server-side proxy yang aman.
+  - Pembayaran: integrasikan payment gateway resmi (Midtrans, Xendit, Stripe) di sisi server untuk token & callback yang aman.
+  - Autentikasi: ganti solusi localStorage ini dengan backend auth (JWT / sessions).
+  - Untuk grafik nyata, integrasikan Chart.js atau ApexCharts.
+  - Untuk menyimpan projek & pembelian, gunakan backend (database).
+*/
+
+/* End of single-file demo */
+</script>
+</body>
+</html>
